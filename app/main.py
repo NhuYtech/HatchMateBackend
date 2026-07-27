@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routes import upload
+from app.services.ai_service import ai_service
 
 app = FastAPI(
     title="Smart Hatch System Camera Processing Backend",
@@ -19,15 +20,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Đăng ký các endpoints của router upload
+# Đăng ký các endpoints của router upload (hỗ trợ cả /api và /)
 app.include_router(upload.router, prefix="/api", tags=["Camera Processing"])
+app.include_router(upload.router, tags=["Camera Processing"])
 
 @app.get("/health")
 async def health_check():
     """Kiểm tra tình trạng hoạt động của hệ thống"""
     return {
         "status": "healthy",
-        "firebase_connection": "connected"
+        "firebase_connection": "connected",
+        "ai_model_loaded": ai_service.is_ready()
     }
 
 if __name__ == "__main__":

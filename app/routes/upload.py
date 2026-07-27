@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Form, UploadFile, File, HTTPException
 from app.services.image_service import image_service
+from app.services.ai_service import ai_service
 
 router = APIRouter()
 
@@ -41,3 +42,26 @@ async def upload_incubator_image(
         "message": "Image uploaded successfully",
         "data": result
     }
+
+@router.post("/predict")
+async def predict_incubator_eggs(
+    file: UploadFile = File(..., description="Tệp ảnh chụp từ camera (.jpg, .png)")
+):
+    """
+    Endpoint nhận diện và đếm số lượng trứng bằng mô hình AI.
+    Trả về cấu hình JSON chuẩn cho Web Dashboard.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Không tìm thấy file ảnh")
+
+    content_type = file.content_type
+    if content_type and not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Tệp tải lên phải là hình ảnh")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Nội dung file ảnh rỗng")
+
+    return ai_service.predict(content)
+
+
