@@ -55,7 +55,7 @@ async def predict_incubator_eggs(
         raise HTTPException(status_code=400, detail="Không tìm thấy file ảnh")
 
     content_type = file.content_type
-    if content_type and not content_type.startswith("image/"):
+    if content_type and not content_type.startswith("image/") and content_type != "application/octet-stream":
         raise HTTPException(status_code=400, detail="Tệp tải lên phải là hình ảnh")
 
     content = await file.read()
