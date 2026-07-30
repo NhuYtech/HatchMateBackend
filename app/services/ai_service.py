@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Đường dẫn tới file weight, nằm tại app/models/best.pt
 MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "best.pt"
-CONFIDENCE_THRESHOLD = 0.25  # Ngưỡng tin cậy tối thiểu để tính là "phát hiện được 1 quả trứng"
+CONFIDENCE_THRESHOLD = 0.15  # Ngưỡng tin cậy tối ưu để phát hiện đầy đủ tất cả quả trứng ngay cả khi bị che khuất một phần
 
 
 class AIService:
@@ -39,6 +39,15 @@ class AIService:
         try:
             logger.info(f"Đang tải model YOLOv8 từ: {MODEL_PATH}")
             self.model = YOLO(str(MODEL_PATH))
+            # Ghi đè tên nhãn lớp 0 thành 'Egg' (dùng ASCII để OpenCV result.plot() không bị lỗi font Unicode)
+            try:
+                if hasattr(self.model, "names") and isinstance(self.model.names, dict):
+                    self.model.names[0] = "Egg"
+                if hasattr(self.model, "model") and hasattr(self.model.model, "names") and isinstance(self.model.model.names, dict):
+                    self.model.model.names[0] = "Egg"
+            except Exception as name_err:
+                logger.warning(f"Không thể ghi đè tên class 0: {name_err}")
+
             logger.info("Tải model YOLOv8 thành công.")
         except Exception as e:
             logger.error(f"Lỗi khi tải model YOLOv8: {e}")
