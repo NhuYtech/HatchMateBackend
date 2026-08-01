@@ -92,22 +92,22 @@ class ImageService:
         }
 
     def upload_image_to_storage(self, storage_path: str, content: bytes, content_type: str) -> str:
-        """Tải dữ liệu nhị phân lên Firebase Storage và trả về URL tải ảnh công khai"""
+        """Tải dữ liệu nhị phân lên Firebase Storage và trả về URL tải ảnh với media token"""
         bucket = firebase_service.bucket
         blob = bucket.blob(storage_path)
+        token = generate_uuid()
         
-        # Upload dữ liệu ảnh
+        # Đặt metadata chứa token tải tệp Firebase Storage chuẩn
+        blob.metadata = {"firebaseStorageDownloadTokens": token}
         blob.upload_from_string(content, content_type=content_type)
         
-        # Cố gắng cấp quyền public cho ảnh để ứng dụng hiển thị trực tiếp
-        try:
-            blob.make_public()
-            return blob.public_url
-        except Exception as e:
-            logger.warning(f"Không thể make_public cho blob, chuyển sang dùng Signed URL có thời hạn: {str(e)}")
-            # Trường hợp bucket bị chặn quyền IAM public, tạo Signed URL có hiệu lực 10 năm làm fallback
-            from datetime import timedelta
-            return blob.generate_signed_url(expiration=timedelta(days=3650))
+        from urllib.parse import quote
+        encoded_path = quote(storage_path, safe="")
+        bucket_name = bucket.name
+        download_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media&token={token}"
+        logger.info(f"Đã upload ảnh thành công lên Firebase Storage: {storage_path}")
+        return download_url
+
 
     def save_image_metadata(self, machine_id: str, image_id: str, metadata: dict) -> None:
         """Lưu metadata vào Firebase Realtime Database tại path: incubators/{machineId}/images/{imageId}"""
